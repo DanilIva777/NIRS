@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <base href="/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель администратора</title>
+    <link rel="stylesheet" href="/admin/accounts/style.css"></script>
+    <script src="/jquery/jquery-3.6.4.js"></script>
+</head>
+<body>
+    <div class="top-bar" style="display: flex; align-items: center;">
+        <img src="/images/logotip.png" alt="Logo" class="logo" style="margin-right: auto;">
+        <button id="logoutButton" type="button" style="width: auto; padding: 6px; border-radius: 6px; display: flex; align-items: center; background-color: #294692; border: none;">
+            <img height="40px" src="/images/logout.png" alt="Выход" style="margin-right: 5px;">
+            <span id="user-info">Выход</span> 
+        </button>
+    </div>
+
+    <div class="container" id="container">
+		<h1>Панель администратора</h1>
+		<div class="info-admin" id="info-admin">
+        	<table id="adminsTable"></table>
+		</div> 
+		<h2>Изменение пароля</h2> <br> <form id="changePasswordForm">           
+            <div class="password-field">
+                <label for="currentPassword">Текущий пароль:</label>
+                <input type="password" id="currentPassword" name="currentPassword" required style="width: auto;">
+				<span class="toggle-password">Показать</span>
+            </div>
+            <br><br>            
+			<div class="password-field">
+			    <label for="newPassword">Новый пароль:</label>
+			    <input type="password" id="newPassword" name="newPassword" required style="width: auto;">
+			    <span class="toggle-password">Показать</span> </div>
+			<br><br>
+			<button type="submit">Изменить пароль</button>
+        </form>	
+    </div>
+
+    <div class="bottom-bar">
+        <span class="copyright">© ГУП ДНР «Почта Донбасса» 2024</span>
+    </div>
+
+    <script>
+        function deleteOtdelenie(id) {
+	        $.ajax({
+	            url: `/admin/otdelenia/${id}`,
+	            type: 'DELETE',
+	            success: function() {
+	                alert('Отделение удалено!');
+	                location.reload();
+	            },
+	            error: function(error) {
+	                console.error("Error deleting otdelenie:", error);
+	                alert('Не удалось удалить отделение.');
+	            }
+	        });
+	    }
+
+	    // Функция для генерации случайной строки
+	    function generateRandomString(length) {
+	        const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+	        let result = '';
+	        for (let i = 0; i < length; i++) {
+	            result += charset[Math.floor(Math.random() * charset.length)];
+	        }
+	        return result;
+	    }
+
+	    // Функция для загрузки и отображения администраторов
+	    function loadAdmins() {
+	        $.ajax({
+	            url: '/admin/admins',
+	            type: 'GET',
+	            dataType: 'json',
+	            success: function(admins) {
+	                const adminsTable = $('<table id="adminsTable"><thead><tr><th>ФИО</th><th>Логин</th><th>Пароль</th><th>Действия</th></tr></thead><tbody></tbody></table>');
+	                const addAdminForm = createAddAdminForm();
+
+	                admins.forEach(admin => {
+	                    const row = $('<tr></tr>');
+	                    row.append($('<td>').text(admin.info));
+	                    row.append($('<td>').text(admin.login));
+
+	                    // Поле пароля со скрытием/показом
+	                    const passwordField = $('<div class="password-field"></div>');
+	                    const passwordInput = $('<input type="password" style="width: auto;" readonly value="' + admin.password + '">');
+	                    const togglePasswordButton = $('<span class="toggle-password">Показать</span>');
+
+	                    togglePasswordButton.click(function() {
+        				     if (passwordInput.attr('type') === 'password') {
+           					    passwordInput.attr('type', 'text');
+           					    $(this).text('Скрыть');
+           					} else {
+           					    passwordInput.attr('type', 'password');
+           					    $(this).text('Показать');
+           					}
+        				});
+
+	                    passwordField.append(passwordInput);
+        				row.append($('<td>').append(passwordField)); 
+	                    row.append($('<td>').append(togglePasswordButton));
+
+	                    adminsTable.append(row);
+	                });
+
+	                $('#info-admin').html(adminsTable);
+	                $('#info-admin').append(addAdminForm);
+
+	                $(document).on('submit', '#addAdminForm', function(event) {
+	                    event.preventDefault();
+
+	                    const fio = $('#fio').val();
+	                    const login = $('#login').val();
+	                    const password = $('#password').val();
+
+	                    $.ajax({
+	                        url: '/admin/admins',
+	                        type: 'POST',
+	                        contentType: 'application/json',
+	                        data: JSON.stringify({ fio, login, password }),
+	                        success: function(newAdmin) {
+	                            alert('Администратор добавлен!');
+	                            loadAdmins();
+	                        },
+	                        error: function(error) {
+	                           console.error('Ошибка при добавлении администратора:', error);
+	                            if (error.status === 400) {
+	                                alert(error.responseJSON.error);
+	                            } else {
+	                                alert('Не удалось добавить администратора.');
+	                           }
+	                        }
+	                    });
+	                });
+	           },
+	           error: function(error) {
+	               console.error("Error fetching admins:", error);
+	               alert("Не удалось загрузить список администраторов.");
+	            }
+	        });
+	    }
+
+	    // Функция для создания формы добавления администратора
+	    function createAddAdminForm() {
+	        	const form = `
+            	<form id="addAdminForm">
+    			    <h2>Добавить администратора</h2>
+    			    <label for="fio">ФИО:</label>
+    			    <input type="text" id="fio" name="fio" required><br><br>
+    			    <label for="login">Логин:</label>
+    			    <input type="text" id="login" name="login" value="${generateRandomString(8)}" style="width: auto;"><br><br>
+						
+    			    <label for="password">Пароль:</label>
+					<div class="password-field">
+					    <input type="password" id="password" name="password" value="${generateRandomString(12)}" required style="width: auto;"> <span class="toggle-password">Показать</span>
+					</div>
+    			    <button type="submit">Добавить</button>
+    			</form>`;
+        		const formElement = $(form);
+				formElement.find('.toggle-password').on('click', function() {
+				    const passwordInput = $(this).siblings('input[name="password"]');
+				
+				    if (passwordInput.attr('type') === 'password') {
+				        passwordInput.attr('type', 'text');
+				        $(this).text('Скрыть');
+				    } else {
+				        passwordInput.attr('type', 'password');
+				        $(this).text('Показать');
+				    }
+				});
+			
+			    return formElement;
+			}
+
+             // Обработчик формы изменения пароля
+             $(document).on('submit', '#changePasswordForm', function(event) {
+                 event.preventDefault();
+                 const currentPassword = $('#currentPassword').val();
+                  const newPassword = $('#newPassword').val();
+
+                 $.ajax({
+                    url: '/admin/password',
+                    type: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ currentPassword, newPassword }),
+                    success: function(response) {
+                        alert('Пароль успешно изменен!');
+                        window.location.reload();
+                    },
+                    error: function(error) {
+                       console.error('Ошибка при изменении пароля:', error);
+                        if (error.status === 400) {
+                           alert(error.responseJSON.error); 
+                       } else {
+                            alert('Не удалось изменить пароль.');
+                        }
+                    }
+                 });
+             });
+
+            const logoutButton = document.getElementById('logoutButton');
+            logoutButton.addEventListener('click', async () => {
+                try {
+                   const response = await fetch('/logout', { method: 'POST' });
+
+                    if (!response.ok) {
+                        try {
+                            const data = await response.json();
+                           console.error('Logout error:', data.message || 'Logout failed');
+                            alert(data.message || 'Logout failed');
+                        } catch (jsonError) {
+                            console.error('Error parsing JSON:', jsonError);
+                            console.error('Raw response:', await response.text());
+                           alert('An error occurred during logout.');
+                        }
+                       return; 
+                   }
+
+                    window.location.href = '/';
+
+                } catch (error) {
+                    console.error('Error during logout:', error);
+                    alert("Произошла ошибка при выходе из системы. Попробуйте еще раз.");
+                }
+        	});
+			
+			loadAdmins();
+
+			$(document).on('click', '.toggle-password', function() {
+			    const passwordInput = $(this).siblings('input[type="password"], input[type="text"]'); 
+						
+			    if (passwordInput.attr('type') === 'password') {
+			        passwordInput.attr('type', 'text');
+			        $(this).text('Скрыть');
+			    } else {
+			        passwordInput.attr('type', 'password');
+			        $(this).text('Показать');
+			    }
+			});
+
+			$(document).on('click', '.delete-otdelenie', function() {
+       			const otdelenieId = $(this).data('id');
+       			if (confirm('Вы уверены, что хотите удалить это отделение?')) {
+        			deleteOtdelenie(otdelenieId);
+        		}
+        	});
+    </script>
+</body>
+</html>

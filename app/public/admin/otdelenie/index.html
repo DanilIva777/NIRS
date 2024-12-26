@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <base href="/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактирование отделения</title>
+    <link rel="stylesheet" href="/admin/otdelenie/style.css">
+    <script src="/jquery/jquery-3.6.4.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="top-bar" style="display: flex; align-items: center;">
+        <img src="/images/logotip.png" alt="Logo" class="logo" style="margin-right: auto;">
+        <span id="user-info-hidden" style="display:none;"></span>
+        <button id="logoutButton" type="button" style="width: auto; padding: 6px; border-radius: 6px; display: flex; align-items: center; background-color: #294692; border: none;">
+            <img height="40px" src="/images/logout.png" alt="Выход" style="margin-right: 5px;">
+            <span id="user-info">Выход</span> 
+        </button>
+    </div>
+
+    <div class="container" id="container">
+        <h1>Редактирование отделения</h1>
+        <form id="addOtdelenieForm">
+            <label for="index">Индекс:</label><br>
+            <input type="text" id="index" name="index" required><br>
+            <label for="naimenovanie">Наименование:</label><br>
+            <input type="text" id="naimenovanie" name="naimenovanie" required><br>
+            <label for="adres">Адрес:</label><br>
+            <input type="text" id="adres" name="adres" required><br>
+            <label for="ecs">ЕЦС (единый центр связи):</label><br>
+            <input type="checkbox" id="ecs" name="ecs" value=true><br>
+            <label for="time_obrabotki">Интервал выдачи талонов онлайн (ЧЧ:ММ):</label><br>
+            <input type="time" id="time_obrabotki" name="time_obrabotki" value="00:30"><br><br>
+
+            <h2>График работы отделения</h2>
+            <table id="otdelenieGrafikTable">
+                <thead>
+                    <tr>
+                        <th>День недели</th>
+                        <th>Время начала</th>
+                        <th>Время окончания</th>
+                        <th>Начало перерыва</th>
+                        <th>Конец перерыва</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+
+            <h2>Окна</h2>
+            <div id="oknaContainer"></div>
+            <button type="button" id="addOknoButton">Добавить окно</button><br><br>
+
+            <h2>Сотрудники</h2>
+            <div id="sotrudnikiContainer"></div>
+            <button type="button" id="addSotrudnikButton" style="margin: 10px 0px;">Добавить сотрудника</button><br><br>
+
+            <h2>Терминалы выдачи талонов</h2>
+            <div id="terminalContainer"></div>
+            <button type="button" id="addTerminalButton" style="margin: 10px 0px;">Добавить терминал выдачи талонов</button><br><br>
+
+            <h2>Терминалы отображения очереди</h2>
+            <div id="displayTerminalContainer"></div>
+            <button type="button" id="addDisplayTerminalButton" style="margin: 10px 0px;">Добавить терминал отображения очереди</button><br><br>
+
+            <button id="generateReport" class="button" style="margin-top: 10px;">Сформировать отчет</button><br><br>
+            <input type="submit" class="button" value="Сохранить">
+        </form>    
+    </div>
+
+    <div class="bottom-bar">
+        <span class="copyright">© ГУП ДНР «Почта Донбасса» 2024</span>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            const denNedeliMap = {
+            'Понедельник': 0,
+            'Вторник': 1,
+            'Среда': 2,
+            'Четверг': 3,
+            'Пятница': 4,
+            'Суббота': 5,
+            'Воскресенье': 6
+         };
+
+    let oknoCount = 0;
+    let sotrudnikCount = 0;
+    let terminalCount = 0;
+    let displayTerminalCount = 0;
+    let dolzhnosti = [];
+    let otdelenieData = null;
+    const otdelenieId = window.location.pathname.split('/').pop();
+    const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+
+    function createEmployeeGrafikTable(grafikData, sotrudnikCount) { 
+        const employeeGrafikTable = $(`#employeeGrafikTable_sotrudnik${sotrudnikCount}`);
+        employeeGrafikTable.empty();
+
+        const thead = $('<thead></thead>');
+        const headerRow = $('<tr></tr>');
+        headerRow.append($('<th>День недели</th>'));
+                headerRow.append($('<th>Время начала</th>'));
+                headerRow.append($('<th>Время окончания</th>'));
+        thead.append(headerRow);
+        employeeGrafikTable.append(thead);
+
+        const tbody = $('<tbody></tbody>');
+                days.forEach(day => {
+                    const row = $('<tr></tr>');
+                    row.append($('<td></td>').text(day));
+
+                    const startTimeInput = $('<input type="time">').attr('name', `employeeGrafikStart_${day}_sotrudnik${sotrudnikCount}`);
+                    const endTimeInput = $('<input type="time">').attr('name', `employeeGrafikEnd_${day}_sotrudnik${sotrudnikCount}`);
+
+                    const grafikItem = grafikData && grafikData.find(item => item.den_nedeli === day);
+                    if (grafikItem) {
+                        const time_start = formatTime(grafikItem.time_start);
+                        const time_stop = formatTime(grafikItem.time_stop);
+
+                        startTimeInput.val(time_start);
+                        endTimeInput.val(time_stop);
+                    }
+
+                    row.append($('<td></td>').append(startTimeInput));
+                    row.append($('<td></td>').append(endTimeInput));
+                    tbody.append(row);
+                });
+
+                employeeGrafikTable.append(tbody);
+            }
+
+    function createDolzhnostiCheckboxes(containerId, namePrefix) {  
+            const container = $('<div></div>').attr('id', containerId);
+            dolzhnosti.forEach(dolzhnost => {
+                const checkboxDiv = $('<div></div>');
+                const checkbox = $('<input type="checkbox">')
+                    .attr('value', dolzhnost.id)
+                    .attr('name', `${namePrefix}[${dolzhnost.id}]`);
+                const label = $('<label></label>').text(dolzhnost.naim);
+                checkboxDiv.append(checkbox).append(label);
+                container.append(checkboxDiv);
+            });
+            return container;
+    }
+
+    function generateRandomString(length) {
+        const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            const randomIndex = Math.floor(Math.random() * charset.length);
+            result += charset[randomIndex];
+        }
+        return result;
+    }
+
+    function reindexTerminals() {
+        let currentTerminalIndex = 1;
+        $('#terminalContainer > div').each(function() {
+            $(this).attr('id', `terminal${currentTerminalIndex}`);
+            $(this).find('p2').text(`Терминал выдачи талонов №${currentTerminalIndex}:`);
+            $(this).find('label[for^="terminalInfo"]').text(`Информация о терминале:`);
+            $(this).find('input[id^="terminalInfo"]').attr('id', `terminalInfo${currentTerminalIndex}`).attr('name', `terminalInfo${currentTerminalIndex}`);
+            $(this).find('label[for^="terminalLogin"]').text(`Логин:`);
+            $(this).find('input[id^="terminalLogin"]').attr('id', `terminalLogin${currentTerminalIndex}`).attr('name', `terminalLogin${currentTerminalIndex}`);
+            $(this).find('label[for^="terminalPassword"]').text(`Пароль:`);
+            $(this).find('input[id^="terminalPassword"]').attr('id', `terminalPassword${currentTerminalIndex}`).attr('name', `terminalPassword${currentTerminalIndex}`);
+            currentTerminalIndex++;
+        });
+        terminalCount = currentTerminalIndex - 1;
+    }
+
+    function reindexDisplayTerminals() {
+        let currentDisplayTerminalIndex = 1;
+        $('#displayTerminalContainer > div').each(function() {
+            $(this).attr('id', `displayTerminal${currentDisplayTerminalIndex}`);
+            $(this).find('p2').text(`Терминал отображения очереди №${currentDisplayTerminalIndex}:`);
+            $(this).find('label[for^="displayTerminalInfo"]').text(`Информация о терминале отображения очереди:`);
+            $(this).find('input[id^="displayTerminalInfo"]').attr('id', `displayTerminalInfo${currentDisplayTerminalIndex}`).attr('name', `displayTerminalInfo${currentDisplayTerminalIndex}`);
+            $(this).find('label[for^="displayTerminalLogin"]').text(`Логин:`);
+            $(this).find('input[id^="displayTerminalLogin"]').attr('id', `displayTerminalLogin${currentDisplayTerminalIndex}`).attr('name', `displayTerminalLogin${currentDisplayTerminalIndex}`);
+            $(this).find('label[for^="displayTerminalPassword"]').text(`Пароль:`);
+            $(this).find('input[id^="displayTerminalPassword"]').attr('id', `displayTerminalPassword${currentDisplayTerminalIndex}`).attr('name', `displayTerminalPassword${currentDisplayTerminalIndex}`);
+            currentDisplayTerminalIndex++;
+        });
+        displayTerminalCount = currentDisplayTerminalIndex - 1;
+    }
+
+    function createGrafikRows() {
+        const tbody = $('#otdelenieGrafikTable tbody');
+        tbody.empty();
+
+        days.forEach(day => {
+            const row = $('<tr></tr>');
+            row.append($('<th></th>').text(day));
+            row.append($('<td></td>').append($('<input type="time" name="grafikStart_' + day + '">')));
+            row.append($('<td></td>').append($('<input type="time" name="grafikEnd_' + day + '">')));
+            row.append($('<td></td>').append($('<input type="time" name="grafikBreakStart_' + day + '">')));
+            row.append($('<td></td>').append($('<input type="time" name="grafikBreakEnd_' + day + '">')));
+            tbody.append(row);
+        });
+    }
+
+    $.ajax({
+        url: '/get_user_info',
+        type: 'GET',
+        success: function(data) {
+            if (data.info) {
+                $('#user-info').before(data.info + ' ');
+            }
+        },
+        error: function(error) {
+            console.error("Error fetching user info:", error);
+        }
+    });
+
+    const logoutButton = document.getElementById('logoutButton');
+    logoutButton.addEventListener('click', async () => {
+        try {
+            const response = await fetch('/logout', { method: 'POST' });
+            if (!response.ok) {
+                try {
+                    const data = await response.json();
+                    console.error('Logout error:', data.message || 'Logout failed');
+                    alert(data.message || 'Logout failed');
+                } catch (jsonError) {
+                    console.error('Error parsing JSON:', jsonError);
+                    console.error('Raw response:', await response.text());
+                    alert('Logout failed');
+                }
+                return;
+            }
+            window.location.href = '/';
+        } catch (error) {
+            console.error('Error during logout:', error);
+            alert("Произошла ошибка при выходе из системы. Попробуйте еще раз.");
+        }
+    });
+
+    $('#generateReport').click(function() {
+        event.preventDefault(); 
+            const data = [
+                ["Индекс", $('#index').val()],
+                ["Наименование", $('#naimenovanie').val()],
+                ["Адрес", $('#adres').val()],
+                ["ЕЦС", $('#ecs').is(':checked') ? "Да" : "Нет"],
+                ["Интервал выдачи талонов онлайн", $('#time_obrabotki').val()]
+            ];
+
+            data.push([
+                "День недели",
+                "Время начала",
+                "Время окончания",
+                "Начало перерыва",
+                "Конец перерыва"
+            ]);
+
+            days.forEach(day => {
+                    
+                data.push([
+                    day,
+                    $(`input[name="grafikStart_${day}"]`).val(),
+                    $(`input[name="grafikEnd_${day}"]`).val(),
+                    $(`input[name="grafikBreakStart_${day}"]`).val(),
+                    $(`input[name="grafikBreakEnd_${day}"]`).val(),
+                ]);
+
+            });
+
+            for (let i = 1; i <= oknoCount; i++) {
+                const oknoNaim = $(`#oknoNaim${i}`).val();
+                const dolzhnostiOkna = [];
+
+                $(`#dolzhnostiCheckboxes${i} input:checked`).each(function() {
+                    const dolzhnostId = parseInt($(this).val(), 10);
+                    const dolzhnost = dolzhnosti.find(d => d.id === dolzhnostId);
+                
+                    if (dolzhnost) {
+                        dolzhnostiOkna.push(dolzhnost.naim);
+                    } else {
+                        console.warn(`Должность с id ${dolzhnostId} не найдена`);
+                    }
+                });
+            
+            
+                data.push([`Окно ${i}`, oknoNaim, dolzhnostiOkna.join(', ')]);
+            }
+            
+            data.push(["Сотрудники", "", "", "", ""]);
+            data.push([
+                "ФИО",
+                "Логин",
+                "Должность",
+                "Окно",
+                "График работы"
+            ]);
+            for (let i = 1; i <= sotrudnikCount; i++) {
+                 const grafikInfo = [];
+                  days.forEach(day => {
+
+                        const startTime = $(`#sotrudnik${i} input[name="employeeGrafikStart_${day}_sotrudnik${i}"]`).val();
+                        const endTime = $(`#sotrudnik${i} input[name="employeeGrafikEnd_${day}_sotrudnik${i}"]`).val();
+                        grafikInfo.push(`${day}: ${startTime} - ${endTime}`);
+
+
+                  });
+                data.push([
+                    $(`#employeeInfo${i}`).val(),
+                    $(`#employeeLogin${i}`).val(),
+                    $(`#dolzhnostSelect${i} option:selected`).text(),
+                    $(`#oknoSelect${i} option:selected`).text(),
+                     grafikInfo.join('\n')
+                ]);
+            }
+
+            // Терминалы выдачи талонов
+            data.push(["Терминалы выдачи талонов", "", ""]);
+            data.push(["Информация", "Логин"]);
+            for (let i = 1; i <= terminalCount; i++) {
+                data.push([
+                    $(`#terminalInfo${i}`).val(),
+                    $(`#terminalLogin${i}`).val()
+                ]);
+            }
+
+            // Терминалы отображения очереди
+            data.push(["Терминалы отображения очереди", "", ""]);
+            data.push(["Информация", "Логин"]);
+            for (let i = 1; i <= displayTerminalCount; i++) {
+                data.push([
+                    $(`#displayTerminalInfo${i}`).val(),
+                    $(`#displayTerminalLogin${i}`).val()
+                ]);
+            }
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            ws['!cols'] = [
+                { wch: 30 },
+                { wch: 15 },
+                { wch: 15 },
+                { wch: 15 },
+                { wch: 15 },
+            ];
+            
+            XLSX.utils.book_append_sheet(wb, ws, "Отчет по отделению");
+
+            //  Получаем бинарные данные книги Excel
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+            // Создаем Blob URL
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+
+             // Создаем ссылку для скачивания и кликаем по ней
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `otchet_otdelenie_${$('#index').val()}.xlsx`;  // Имя файла
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            // Освобождаем Blob URL
+            URL.revokeObjectURL(url);
+        });
+
+    $.ajax({
+        url: '/admin/dolzhnosti',
+        type: 'GET',
+        dataType: 'json',
+        success: function(data) {
+            dolzhnosti = data;
+            createGrafikRows();
+
+            $.ajax({
+                url: `/admin/otdelenie/${otdelenieId}?format=json`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    otdelenieData = data;
+                    console.log(otdelenieData);
+                    initializeForm();
+                    populateForm(otdelenieData);
+                },
+                error: function(error) {
+                    console.error("Ошибка при получении данных отделения:", error);
+                    alert("Не удалось загрузить информацию об отделении.");
+                }
+            });
+        },
+        error: function(error) {
+            console.error("Error fetching dolzhnosti:", error);
+            alert("Не удалось загрузить список должностей.");
+        }
+    });
+
+    function updateOknoSelects(selectedDolzhnostId = null) {
+        $('select[id^="oknoSelect"]').each(function() {
+            const sotrudnikIndex = $(this).attr('id').replace('oknoSelect', '');
+            const selectedDolzhnost = selectedDolzhnostId || $(`#dolzhnostSelect${sotrudnikIndex}`).val();
+            $(this).empty();
+            $(this).append($('<option value="">Выберите окно</option>'));
+            for (let i = 1; i <= oknoCount; i++) {
+                const oknoDolzhnosti = $(`#dolzhnostiCheckboxes${i} input:checked`).map(function() {
+                    return parseInt($(this).val(), 10);
+                }).get();
+                if (oknoDolzhnosti.includes(parseInt(selectedDolzhnost))) {
+                    const option = $('<option></option>')
+                        .attr('value', i)
+                        .text($(`#oknoNaim${i}`).val() || `Окно ${i}`);
+                    $(this).append(option);
+                }
+            }
+        });
+    }
+
+    function initializeForm() {
+        let assignedDolzhnosti = {};
+
+        function reindexEmployees() {
+            const remainingEmployees = $('#sotrudnikiContainer > div');
+            sotrudnikCount = remainingEmployees.length;
+            remainingEmployees.each(function(index) {
+                const newIndex = index + 1;
+                $(this).attr('id', `sotrudnik${newIndex}`);
+                $(this).find('p2').text(`Сотрудник №${newIndex}:`);
+                $(this).find('label[for^="employeeInfo"]').text(`ФИО:`);
+                $(this).find('input[id^="employeeInfo"]').attr('id', `employeeInfo${newIndex}`).attr('name', `employeeInfo${newIndex}`);
+                $(this).find('label[for^="employeeLogin"]').text(`Логин:`);
+                $(this).find('input[id^="employeeLogin"]').attr('id', `employeeLogin${newIndex}`).attr('name', `employeeLogin${newIndex}`);
+                $(this).find('input[id^="employeePassword"]').attr('id', `employeePassword${newIndex}`).attr('name', `employeePassword${newIndex}`);
+                $(this).find('label[for^="dolzhnost"]').text(`Должность:`);
+                $(this).find('select[id^="dolzhnostSelect"]').attr('id', `dolzhnostSelect${newIndex}`).attr('name', `dolzhnostSelect${newIndex}`);
+                $(this).find('label[for^="oknoSelect"]').text(`Окно:`);
+                $(this).find('select[id^="oknoSelect"]').attr('id', `oknoSelect${newIndex}`).attr('name', `okno_sotrudnika[${newIndex}]`);
+                $(this).find(`.grafikLabel`).next('table').attr('id', `employeeGrafikTable_sotrudnik${newIndex}`);
+            });
+        }
+
+        function reindexWindows() {
+            const remainingWindows = $('#oknaContainer > div');
+            oknoCount = remainingWindows.length;
+            remainingWindows.each(function(index) {
+                const newIndex = index + 1;
+                $(this).attr('id', `okno${newIndex}`);
+                $(this).find('label[for="oknoNaim"]').text(`Название окна ${newIndex}:`);
+                $(this).find('input[type="text"]').attr('id', `oknoNaim${newIndex}`);
+                $(this).find('div[id^="dolzhnostiCheckboxes"]').attr('id', `dolzhnostiCheckboxes${newIndex}`);
+                $(this).find('input[type="checkbox"]').each(function(i) {
+                    $(this).attr('name', `okno_dolzhnosti[${newIndex}][${$(this).val()}]`);
+                });
+            });
+        }
+
+        $('#addOknoButton').click(function() {
+            oknoCount++;
+            const oknoDiv = $('<div></div>').attr('id', `okno${oknoCount}`);
+            const naimLabel = $('<label for="oknoNaim">').text(`Название окна ${oknoCount}:  `);
+            const naimInput = $('<input type="text" name="oknaNaim">').attr('id', `oknoNaim${oknoCount}`);
+            const dolzhnostiLabel = $('<br><label>').text("Должности:");
+            const dolzhnostiCheckboxes = createDolzhnostiCheckboxes(`dolzhnostiCheckboxes${oknoCount}`, `okno_dolzhности[${oknoCount}]`);
+            oknoDiv.append(naimLabel).append(naimInput).append(dolzhnostiLabel).append(dolzhnostiCheckboxes);
+            const deleteButton = $('<button type="button" style="margin: 10px 0px;">Удалить окно</button>');
+            deleteButton.click(function() {
+                const windowId = parseInt(oknoDiv.attr('id').replace('okno', ''));
+                if (assignedDolzhnosti[windowId] && assignedDolzhnosti[windowId].length > 0) {
+                    alert('Нельзя удалить окно, к которому прикреплены сотрудники.');
+                    return;
+                }
+
+                if (confirm(`Вы уверены, что хотите удалить окно ${windowId}?`)) {
+                    oknoDiv.remove();
+                    delete assignedDolzhnosti[windowId];
+                    reindexWindows();
+                    updateOknoSelects();
+
+                    // Update sotrudnik selects after deleting a window
+                    updateSotrudnikDolzhnostSelects();
+                }
+            });
+
+            oknoDiv.append(deleteButton);
+            $('#oknaContainer').append(oknoDiv);
+            updateOknoSelects();
+            assignedDolzhnosti[oknoCount] = [];
+        });
+
+        $('#addSotrudnikButton').click(function() {
+            sotrudnikCount++;
+            const randomLogin = generateRandomString(8);
+            const randomPassword = generateRandomString(12);
+            const sotrudnikNum = $('<br><p2></p2><br>').text(`Сотрудник №${sotrudnikCount}:`);
+            const sotrudnikDiv = $('<div></div>').attr('id', `sotrudnik${sotrudnikCount}`);
+            const fioLabel = $('<label for="employeeInfo' + sotrudnikCount + '">').text(`ФИО:`);
+            const fioInput = $('<input type="text">').attr('id', `employeeInfo${sotrudnikCount}`).attr('name', `employeeInfo${sotrudnikCount}`).css('margin-right', '5%');
+            const loginLabel = $('<label for="employeeLogin' + sotrudnikCount + '">').text(`Логин:`);
+
+            const loginInput = $('<input type="text">').attr('id', `employeeLogin${sotrudnikCount}`).attr('name', `employeeLogin${sotrudnikCount}`).val(randomLogin).css('margin-right', '5%');
+            const passwordLabel = $('<label for="employeePassword' + sotrudnikCount + '">').text(`Пароль:`);
+            const passwordInput = $('<input type="text">').attr('id', `employeePassword${sotrudnikCount}`).attr('name', `employeePassword${sotrudnikCount}`).val(randomPassword).css('margin-right', '5%');
+            const dolzhnostLabel = $('<label for="dolzhnost' + sotrudnikCount + '">').text(`Должность:`);
+            const dolzhnostSelect = $('<select></select>').attr('id', `dolzhnostSelect${sotrudnikCount}`).attr('name', `dolzhnostSelect${sotrudnikCount}`).css('margin-right', '5%');
+
+            dolzhnosti.forEach(dolzhnost => {
+                const option = $('<option></option>')
+                .attr('value', dolzhnost.id)
+                .text(dolzhnost.naim);
+                dolzhnostSelect.append(option);
+            });
+
+            const oknoSelectLabel = $('<label for="oknoSelect' + sotrudnikCount + '">').text(`Окно:`);
+            const oknoSelect = $('<select></select>').attr('id', `oknoSelect${sotrudnikCount}`).attr('name', `okno_sotrudnika[${sotrudnikCount}]`);
+            oknoSelect.append($('<option value="">Выберите окно</option>'));
+
+
+            const grafikLabel = $('<label class="grafikLabel">').text('График работы:');
+            const employeeGrafikTable = $(`<table id="employeeGrafikTable_sotrudnik${sotrudnikCount}"></table>`);
+            const employeeGrafikContainer = $('<div></div>').append(employeeGrafikTable);
+
+
+            function createEmployeeGrafikTable(grafikData) {
+                employeeGrafikTable.empty();
+                const thead = $('<thead></thead>');
+                const headerRow = $('<tr></tr>');
+                headerRow.append($('<th>День недели</th>'));
+                headerRow.append($('<th>Время начала</th>'));
+                headerRow.append($('<th>Время окончания</th>'));
+                thead.append(headerRow);
+                employeeGrafikTable.append(thead);
+
+                const tbody = $('<tbody></tbody>');
+                days.forEach(day => {
+                    const row = $('<tr></tr>');
+                    row.append($('<td></td>').text(day));
+
+                    const startTimeInput = $('<input type="time">').attr('name', `employeeGrafikStart_${day}_sotrudnik${sotrudnikCount}`);
+                    const endTimeInput = $('<input type="time">').attr('name', `employeeGrafikEnd_${day}_sotrudnik${sotrudnikCount}`);
+
+                    const grafikItem = grafikData && grafikData.find(item => item.den_nedeli === day);
+                    if (grafikItem) {
+                        startTimeInput.val(grafikItem.time_start);
+                        endTimeInput.val(grafikItem.time_stop);
+                    }
+
+                    row.append($('<td></td>').append(startTimeInput));
+                    row.append($('<td></td>').append(endTimeInput));
+                    tbody.append(row);
+                });
+
+                employeeGrafikTable.append(tbody);
+            }
+
+
+
+            const deleteButton = $('<button type="button" style="margin: 10px 0px;">Удалить сотрудника</button>');
+            deleteButton.click(function() {
+                const employeeId = sotrudnikCount;
+                if (confirm(`Вы уверены, что хотите удалить сотрудника ${employeeId}?`)) {
+                    sotrudnikDiv.remove();
+                    for (const windowId in assignedDolzhnosti)
+                        assignedDolzhnosti[windowId] = assignedDolzhnosti[windowId].filter(id => id !== parseInt($(`#dolzhnostSelect${employeeId}`).val()));
+
+                    reindexEmployees();
+                    updateOknoSelects();
+                }
+            });
+
+            sotrudnikDiv
+                .append(sotrudnikNum)
+                .append(fioLabel)
+                .append(fioInput)
+                .append(loginLabel)
+                .append(loginInput)
+                .append(passwordLabel)
+                .append(passwordInput)
+                .append(dolzhnostLabel)
+                .append(dolzhnostSelect)
+                .append(oknoSelectLabel)
+                .append(oknoSelect)
+                .append(deleteButton)
+                .append(grafikLabel)
+                .append(employeeGrafikContainer);
+            $('#sotrudnikiContainer').append(sotrudnikDiv);
+
+            oknoSelect.change(function() {
+                const windowId = $(this).val();
+                const employeeDolzhnost = parseInt($(`#dolzhnostSelect${sotrudnikCount}`).val());
+                if (windowId) {
+                    assignedDolzhnosti[windowId].push(employeeDolzhnost);
+                }
+            });
+
+            updateOknoSelects();
+            dolzhnostSelect.change(function() {
+                const windowId = oknoSelect.val();
+                if (windowId)
+                {
+                    assignedDolzhnosti[windowId] = assignedDolzhnosti[windowId].filter(id => id !== parseInt(dolzhnostSelect.val()));
+                }
+
+                const sotrudnikIndex = $(this).attr('id').replace('dolzhnostSelect', '');
+                updateOknoSelects(parseInt($(this).val()));
+            });
+
+            createEmployeeGrafikTable([]); // Инициализируем таблицу графика сотрудника
+        });
+
+        $('#addTerminalButton').click(function() {
+            terminalCount++;
+            const randomLogin = generateRandomString(8);
+            const randomPassword = generateRandomString(12);
+
+            const terminalNum = $('<br><p2></p2><br>').text(`Терминал выдачи талонов №${terminalCount}:`);
+            const terminalDiv = $('<div></div>').attr('id', `terminal${terminalCount}`);
+            const infoLabel = $('<label for="terminalInfo' + terminalCount + '">').text(`Информация о терминале:`);
+            const infoInput = $('<input type="text">').attr('id', `terminalInfo${terminalCount}`).attr('name', `terminalInfo${terminalCount}`).css('margin-right', '5%');
+            const loginLabel = $('<label for="terminalLogin' + terminalCount + '">').text(`Логин:`);
+            const loginInput = $('<input type="text">').attr('id', `terminalLogin${terminalCount}`).attr('name', `terminalLogin${terminalCount}`).val(randomLogin).css('margin-right', '5%');
+            const passwordLabel = $('<label for="terminalPassword' + terminalCount + '">').text(`Пароль:`);
+            const passwordInput = $('<input type="text">').attr('id', `terminalPassword${terminalCount}`).attr('name', `terminalPassword${terminalCount}`).val(randomPassword).css('margin-right', '5%');
+
+
+            const deleteButton = $('<button type="button" style="margin: 10px 0px;">Удалить терминал</button>');
+            deleteButton.click(function() {
+                if (confirm(`Вы уверены, что хотите удалить терминал ${terminalCount}?`)) {
+                    terminalDiv.remove();
+                    reindexTerminals();
+                }
+            });
+
+            terminalDiv.append(terminalNum).append(infoLabel).append(infoInput).append(loginLabel).append(loginInput).append(passwordLabel).append(passwordInput).append(deleteButton);
+            $('#terminalContainer').append(terminalDiv);
+        });
+
+
+        $('#addDisplayTerminalButton').click(function() {
+            displayTerminalCount++;
+            const randomLogin = generateRandomString(8);
+            const randomPassword = generateRandomString(12);
+
+            const displayTerminalNum = $('<br><p2></p2><br>').text(`Терминал отображения очереди №${displayTerminalCount}:`);
+            const displayTerminalDiv = $('<div></div>').attr('id', `displayTerminal${displayTerminalCount}`);
+            const infoLabel = $('<label for="displayTerminalInfo' + displayTerminalCount + '">').text(`Информация о терминале отображения очереди:`);
+            const infoInput = $('<input type="text">').attr('id', `displayTerminalInfo${displayTerminalCount}`).attr('name', `displayTerminalInfo${displayTerminalCount}`).css('margin-right', '5%');
+            const loginLabel = $('<label for="displayTerminalLogin' + displayTerminalCount + '">').text(`Логин:`);
+            const loginInput = $('<input type="text">').attr('id', `displayTerminalLogin${displayTerminalCount}`).attr('name', `displayTerminalLogin${displayTerminalCount}`).val(randomLogin).css('margin-right', '5%');
+            const passwordLabel = $('<label for="displayTerminalPassword' + displayTerminalCount + '">').text(`Пароль:`);
+            const passwordInput = $('<input type="text">').attr('id', `displayTerminalPassword${displayTerminalCount}`).attr('name', `displayTerminalPassword${displayTerminalCount}`).val(randomPassword).css('margin-right', '5%');
+
+            const deleteButton = $('<button type="button" style="margin: 10px 0px;">Удалить терминал отображения очереди</button>');
+            deleteButton.click(function() {
+                if (confirm(`Вы уверены, что хотите удалить терминал ${displayTerminalCount}?`)) {
+                    displayTerminalDiv.remove();
+                    reindexDisplayTerminals();
+                }
+            });
+
+            displayTerminalDiv.append(displayTerminalNum).append(infoLabel).append(infoInput).append(loginLabel).append(loginInput).append(passwordLabel).append(passwordInput).append(deleteButton);
+            $('#displayTerminalContainer').append(displayTerminalDiv);
+        });
+
+        function updateSotrudnikDolzhnostSelects() {
+            $('select[id^="dolzhnostSelect"]').each(function() {
+                const sotrudnikIndex = $(this).attr('id').replace('dolzhnostSelect', '');
+                const currentVal = $(this).val();
+                $(this).empty();
+                dolzhnosti.forEach(dolzhnost => {
+                    const option = $('<option></option>')
+                        .attr('value', dolzhnost.id)
+                        .text(dolzhnost.naim);
+                    $(this).append(option);
+                });
+                $(this).val(currentVal);
+                updateOknoSelects(parseInt(currentVal)); // Update window options immediately
+            });
+        }
+
+        $('#editOtdelenieForm').submit(function(event) {
+            event.preventDefault();
+
+            const formData = {
+                index: $('#index').val(),
+                naimenovanie: $('#naimenovanie').val(),
+                adres: $('#adres').val(),
+                ecs: $('#ecs').is(':checked'),
+                time_obrabotki: $('#time_obrabotki').val(),
+                okna: [],
+                sotrudniki: [],
+                terminals: [],
+                displayTerminals: [],
+                grafikOtdeleniya: [],
+            };
+
+            let otdelenieGrafikIsValid = true;
+            days.forEach(day => {
+                const start = $(`input[name="grafikStart_${day}"]`).val();
+                const end = $(`input[name="grafikEnd_${day}"]`).val();
+                const breakStart = $(`input[name="grafikBreakStart_${day}"]`).val();
+                const breakEnd = $(`input[name="grafikBreakEnd_${day}"]`).val();
+
+                if (start || end) {
+                    if (!start || !end) {
+                        alert(`Ошибка в графике отделения: для дня "${day}" не указано время начала или окончания работы.`);
+                        otdelenieGrafikIsValid = false;
+                    } else if (start >= end) {
+                        alert(`Ошибка в графике отделения: для дня "${day}" время окончания работы должно быть позже времени начала.`);
+                        otdelenieGrafikIsValid = false;
+                    } else if (breakStart || breakEnd) {
+                        if (!breakStart || !breakEnd) {
+                            alert(`Ошибка в графике отделения: для дня "${day}" не указано время начала или окончания перерыва.`);
+                            otdelenieGrafikIsValid = false;
+                        } else if (breakStart >= breakEnd) {
+                            alert(`Ошибка в графике отделения: для дня "${day}" время окончания перерыва должно быть позже времени начала.`);
+                            otdelenieGrafikIsValid = false;
+                        } else if (breakStart <= start) {
+                            alert(`Ошибка в графике отделения: для дня "${day}" время начала перерыва должно быть позже времени начала работы.`);
+                            otdelenieGrafikIsValid = false;
+                        } else if (breakEnd >= end) {
+                            alert(`Ошибка в графике отделения: для дня "${day}" время окончания перерыва должно быть раньше времени окончания работы.`);
+                            otdelenieGrafikIsValid = false;
+                        }
+                    }
+                } else if (breakStart || breakEnd) {
+                    alert(`Ошибка в графике отделения: для дня "${day}" указано время перерыва, но не указано время начала или окончания работы. День отмечен как нерабочий`);
+                    otdelenieGrafikIsValid = false;
+                }
+
+                formData.grafikOtdeleniya.push({
+                    den_nedeli: day,
+                    start_time: start,
+                    stop_time: end,
+                    break_start_time: breakStart,
+                    break_end_time: breakEnd
+                });
+            });
+
+            if (!otdelenieGrafikIsValid) {
+                return;
+            }
+
+            for (let i = 1; i <= oknoCount; i++) {
+                const selectedDolzhnosti = [];
+                $(`#dolzhnostiCheckboxes${i} input:checked`).each(function() {
+                    selectedDolzhnosti.push(parseInt($(this).val(), 10));
+                });
+
+                formData.okna.push({
+                    id: $(`#okno${i}`).data('id'), // Добавляем id окна
+                    naim_okna: $(`#oknoNaim${i}`).val(),
+                    dolzhnosti: selectedDolzhnosti
+                });
+            }
+
+            for (let i = 1; i <= sotrudnikCount; i++) {
+                const employeeGrafikData = [];
+                days.forEach(day => {
+                    employeeGrafikData.push({
+                        den_nedeli: day,
+                        time_start: $(`#sotrudnik${i} input[name="employeeGrafikStart_${day}_sotrudnik${i}"]`).val(),
+                        time_stop: $(`#sotrudnik${i} input[name="employeeGrafikEnd_${day}_sotrudnik${i}"]`).val()
+                    });
+                });
+
+                formData.sotrudniki.push({
+                    id: $(`#sotrudnik${i}`).data('id'), // Добавляем id сотрудника
+                    info: $(`#employeeInfo${i}`).val(),
+                    login: $(`#employeeLogin${i}`).val(),
+                    password: $(`#employeePassword${i}`).val(),
+                    id_dolzhnosti: $(`#dolzhnostSelect${i}`).val(),
+                    okno: $(`#oknoSelect${i}`).val(),
+                    grafik: employeeGrafikData
+                });
+            }
+
+            for (let i = 1; i <= terminalCount; i++) {
+                formData.terminals.push({
+                    id: $(`#terminal${i}`).data('id'), // Добавляем id терминала
+                    info: $(`#terminalInfo${i}`).val(),
+                    login: $(`#terminalLogin${i}`).val(),
+                    password: $(`#terminalPassword${i}`).val()
+                });
+            }
+
+            for (let i = 1; i <= displayTerminalCount; i++) {
+                formData.displayTerminals.push({
+                    id: $(`#displayTerminal${i}`).data('id'), // Добавляем id терминала отображения
+                    info: $(`#displayTerminalInfo${i}`).val(),
+                    login: $(`#displayTerminalLogin${i}`).val(),
+                    password: $(`#displayTerminalPassword${i}`).val()
+                });
+            }
+
+            $.ajax({
+                url: `/admin/otdelenie/${otdelenieId}/edit`,
+                type: 'PUT',
+                data: JSON.stringify(formData),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: function(response) {
+                    alert('Отделение изменено!');
+                    window.location.href = '/admin/otdelenia';
+                },
+                error: function(error) {
+                    console.error('Ошибка при изменении отделения:', error);
+                    alert('Ошибка при изменении отделения.');
+                }
+            });
+        });
+    }
+
+    function formatTime(timeString) {
+        if (!timeString)
+            return "";
+
+        let formattedTime = timeString.split('+')[0];
+        formattedTime = formattedTime.split('.')[0];
+
+        return formattedTime;
+    }
+
+    function populateForm(data) {
+        $('#index').val(data.index);
+        $('#naimenovanie').val(data.naimenovanie);
+        $('#adres').val(data.adres);
+        $('#ecs').prop('checked', data.ecs);
+        $('#time_obrabotki').val(data.time_obrabotki);
+
+        if (data.grafik && data.grafik.length > 0) {
+            data.grafik.forEach(grafikItem => {
+                const dayIndex = days.findIndex(day => denNedeliMap[day] === grafikItem.den_nedeli );
+
+                if (dayIndex >= 0) {
+                    const dayName = days[dayIndex];
+                    $(`input[name="grafikStart_${dayName}"]`).val(formatTime(grafikItem.start));
+                    $(`input[name="grafikEnd_${dayName}"]`).val(formatTime(grafikItem.stop));
+                    $(`input[name="grafikBreakStart_${dayName}"]`).val(formatTime(grafikItem.pereryv_start));
+                    $(`input[name="grafikBreakEnd_${dayName}"]`).val(formatTime(grafikItem.pereryv_stop));
+                } else {
+                    console.warn(`Day with den_nedeli ${grafikItem.den_nedeli} not found in days array`);
+                }
+            });
+        }
+
+        if (data.oknas && data.oknas.length > 0) {
+            data.oknas.forEach(okno => {
+                oknoCount++;
+                addOkno(okno, createDolzhnostiCheckboxes);
+            });
+        }
+
+        if (data.sotrudniki && data.sotrudniki.length > 0) {
+               data.sotrudniki.forEach(sotrudnik => {
+                sotrudnikCount++;
+                addSotrudnik(sotrudnik, data.oknas);
+            });
+        }
+
+        data.terminals.forEach(terminal => {
+            terminalCount++;
+            addTerminal(terminal);
+        });
+
+        data.displayTerminals.forEach(terminal => {
+            displayTerminalCount++;
+            addDisplayTerminal(terminal);
+        });
+    }
+
+function addOkno(oknoData) {
+    const oknoDiv = $('<div></div>').attr('id', `okno${oknoCount}`).data('id', oknoData.id);
+    const naimLabel = $('<label for="oknoNaim">').text(`Название окна ${oknoCount}:  `);
+    const naimInput = $('<input type="text" name="oknaNaim">').attr('id', `oknoNaim${oknoCount}`).val(oknoData ? oknoData.naim_okna : '');
+    const dolzhnostiLabel = $('<br><label>').text("Должности:");
+    const dolzhnostiCheckboxes = createDolzhnostiCheckboxes(`dolzhnostiCheckboxes${oknoCount}`, `okno_dolzhnosti[${oknoCount}]`);
+
+    if (oknoData.dolzhnosts) {
+        dolzhnosti.forEach(dolzhnost => {
+          dolzhnostiCheckboxes.find(`input[type="checkbox"][value="${dolzhnost.id}"]`).prop('checked', oknoData.dolzhnosts[dolzhnost.id] || false);
+      });
+    }
+
+    oknoDiv.append(naimLabel).append(naimInput).append(dolzhnostiLabel).append(dolzhnostiCheckboxes);
+
+    const deleteButton = $('<button type="button" style="margin: 10px 0px;">Удалить окно</button>');
+    deleteButton.click(function() {
+        const windowId = parseInt(oknoDiv.attr('id').replace('okno', ''));
+        if (assignedDolzhnosti[windowId] && assignedDolzhnosti[windowId].length > 0) {
+            alert('Нельзя удалить окно, к которому прикреплены сотрудники.');
+            return;
+        }
+        if (confirm(`Вы уверены, что хотите удалить окно ${windowId}?`)) {
+            oknoDiv.remove();
+            delete assignedDolzhnosti[windowId];
+            reindexWindows();
+            updateOknoSelects();
+            updateSotrudnikDolzhnostSelects();
+        }
+    });
+    oknoDiv.append(deleteButton);
+    $('#oknaContainer').append(oknoDiv);
+    updateOknoSelects();
+
+    if (!oknoData.id)
+        assignedDolzhnosti[oknoCount] = [];
+}
+
+function addSotrudnik(sotrudnikData, oknas) {
+    const randomLogin = generateRandomString(8);
+    const randomPassword = generateRandomString(12);
+    const sotrudnikNum = $('<br><p2></p2><br>').text(`Сотрудник №${sotrudnikCount}:`);
+    const sotrudnikDiv = $('<div></div>').attr('id', `sotrudnik${sotrudnikCount}`).data('id', sotrudnikData.id);
+    const fioLabel = $('<label for="employeeInfo' + sotrudnikCount + '">').text(`ФИО:`);
+    const fioInput = $('<input type="text">').attr('id', `employeeInfo${sotrudnikCount}`).attr('name', `employeeInfo${sotrudnikCount}`).css('margin-right', '5%');
+    const loginLabel = $('<label for="employeeLogin' + sotrudnikCount + '">').text(`Логин:`);
+    const loginInput = $('<input type="text">').attr('id', `employeeLogin${sotrudnikCount}`).attr('name', `employeeLogin${sotrudnikCount}`).val(randomLogin).css('margin-right', '5%');
+    const passwordLabel = $('<label for="employeePassword' + sotrudnikCount + '">').text(`Пароль:`);
+    const passwordInput = $('<input type="text">').attr('id', `employeePassword${sotrudnikCount}`).attr('name', `employeePassword${sotrudnikCount}`).val(randomPassword).css('margin-right', '5%');
+    const dolzhnostLabel = $('<label for="dolzhnost' + sotrudnikCount + '">').text(`Должность:`);
+      const dolzhnostSelect = $('<select></select>')
+      .attr('id', `dolzhnostSelect${sotrudnikCount}`)
+        .attr('name', `dolzhnostSelect${sotrudnikCount}`)
+        .css('margin-right', '5%');
+
+        dolzhnosti.forEach(dolzhnost => {
+            const option = $('<option></option>')
+            .attr('value', dolzhnost.id)
+            .text(dolzhnost.naim);
+            dolzhnostSelect.append(option);
+        });
+
+    const oknoSelectLabel = $('<label for="oknoSelect' + sotrudnikCount + '">').text(`Окно:`);
+    const oknoSelect = $('<select></select>').attr('id', `oknoSelect${sotrudnikCount}`).attr('name', `okno_sotrudnika[${sotrudnikCount}]`);
+    oknoSelect.append($('<option value="">Выберите окно</option>'));
+    const grafikLabel = $('<label class="grafikLabel">').text('График работы:');
+    const employeeGrafikTable = $(`<table id="employeeGrafikTable_sotrudnik${sotrudnikCount}"></table>`);  
+    const employeeGrafikContainer = $('<div></div>').append(employeeGrafikTable);
+
+    const deleteButton = $('<button type="button" style="margin: 10px 0px;">Удалить сотрудника</button>');
+            deleteButton.click(function() {
+                const employeeId = sotrudnikCount;
+                if (confirm(`Вы уверены, что хотите удалить сотрудника ${employeeId}?`)) {
+                    sotrudnikDiv.remove();
+                    for (const windowId in assignedDolzhnosti)
+                        assignedDolzhnosti[windowId] = assignedDolzhnosti[windowId].filter(id => id !== parseInt($(`#dolzhnostSelect${employeeId}`).val()));
+
+                    reindexEmployees();
+                    updateOknoSelects();
+                }
+            });
+
+    fioInput.val(sotrudnikData ? sotrudnikData.info : '');
+    loginInput.val(sotrudnikData ? sotrudnikData.login : '');
+    passwordInput.val(sotrudnikData ? sotrudnikData.password : '');
+    dolzhnostSelect.val(sotrudnikData ? sotrudnikData.dolzhnost.id : '');
+    let index = oknas && oknas.findIndex(okno => okno.id === sotrudnikData.id_okna) + 1;
+    oknoSelect.value = index;
+
+    sotrudnikDiv.append(sotrudnikNum).append(fioLabel).append(fioInput).append(loginLabel).append(loginInput).append(passwordLabel).append(passwordInput).append(dolzhnostLabel).append(dolzhnostSelect).append(oknoSelectLabel).append(oknoSelect).append(deleteButton).append(grafikLabel).append(employeeGrafikContainer);
+
+    $('#sotrudnikiContainer').append(sotrudnikDiv);
+ let oknoId = null;
+    if (sotrudnikData.id_otdelenia) {
+        const okno = otdelenieData.okna.find(o => o.id_otdelenia === sotrudnikData.id_otdelenia);
+    if (okno) {
+            oknoId = okno.id;
+        }
+    }
+     oknoSelect.change(function() {
+          const windowId = $(this).val();
+          const employeeDolzhnost = parseInt($(`#dolzhnostSelect${sotrudnikCount}`).val());
+
+          if (windowId) {
+            if (!assignedDolzhnosti[windowId]) {
+                assignedDolzhnosti[windowId] = [];
+            }
+
+            assignedDolzhnosti[windowId].push(employeeDolzhnost);
+          }
+      });
+updateOknoSelects(parseInt(dolzhnostSelect.val()));
+     dolzhnostSelect.change(function() {
+
+
+        const windowId = oknoSelect.val();
+        if (windowId)
+        {
+            assignedDolzhnosti[windowId] = assignedDolzhnosti[windowId].filter(id => id !== parseInt(dolzhnostSelect.val()));
+        }
+
+
+        const sotrudnikIndex = $(this).attr('id').replace('dolzhnostSelect', '');
+
+        updateOknoSelects(parseInt($(this).val()));
+    });
+
+    createEmployeeGrafikTable(sotrudnikData.grafiks || []);
+    }
+
+function addTerminal(terminalData) {
+    const terminalNum = $('<br><p2></p2><br>').text(`Терминал выдачи талонов №${terminalCount}:`);
+    const terminalDiv = $('<div></div>').attr('id', `terminal${terminalCount}`).data('id', terminalData.id);
+    const infoLabel = $('<label for="terminalInfo' + terminalCount + '">').text(`Информация о терминале:`);
+
+    const infoInput = $('<input type="text">')
+        .attr('id', `terminalInfo${terminalCount}`)
+        .attr('name', `terminalInfo${terminalCount}`)
+        .css('margin-right', '5%')
+        .val(terminalData ? terminalData.info : '');
+
+    const loginLabel = $('<label for="terminalLogin' + terminalCount + '">').text(`Логин:`);
+    const loginInput = $('<input type="text">')
+        .attr('id', `terminalLogin${terminalCount}`)
+        .attr('name', `terminalLogin${terminalCount}`)
+        .val(terminalData ? terminalData.login : '')
+        .css('margin-right', '5%');
+
+    const passwordLabel = $('<label for="terminalPassword' + terminalCount + '">').text(`Пароль:`);
+    const passwordInput = $('<input type="text">').attr('id', `terminalPassword${terminalCount}`)
+        .attr('name', `terminalPassword${terminalCount}`)
+        .val(terminalData ? terminalData.password : '')
+        .css('margin-right', '5%');
+
+    const deleteButton = $('<button type="button" style="margin: 10px 0px;">Удалить терминал</button>');
+    deleteButton.click(function() {
+        if (confirm(`Вы уверены, что хотите удалить терминал ${terminalCount}?`)) {
+            terminalDiv.remove();
+            reindexTerminals();
+        }
+    });
+
+    terminalDiv.append(terminalNum).append(infoLabel).append(infoInput).append(loginLabel).append(loginInput).append(passwordLabel).append(passwordInput).append(deleteButton);
+    $('#terminalContainer').append(terminalDiv);
+}
+
+
+function addDisplayTerminal(terminalData) {
+    const displayTerminalNum = $('<br><p2></p2><br>').text(`Терминал отображения очереди №${displayTerminalCount}:`);
+    const displayTerminalDiv = $('<div></div>').attr('id', `displayTerminal${displayTerminalCount}`).data('id', terminalData.id);
+    const infoLabel = $('<label for="displayTerminalInfo' + displayTerminalCount + '">').text(`Информация о терминале отображения очереди:`);
+
+    const infoInput = $('<input type="text">')
+        .attr('id', `displayTerminalInfo${displayTerminalCount}`)
+        .attr('name', `displayTerminalInfo${displayTerminalCount}`)
+        .val(terminalData ? terminalData.info : '') // Set the value here
+        .css('margin-right', '5%');
+
+    const loginLabel = $('<label for="displayTerminalLogin' + displayTerminalCount + '">').text(`Логин:`);
+    const loginInput = $('<input type="text">')
+        .attr('id', `displayTerminalLogin${displayTerminalCount}`)
+        .attr('name', `displayTerminalLogin${displayTerminalCount}`)
+        .val(terminalData ? terminalData.login : '')
+        .css('margin-right', '5%');
+
+    const passwordLabel = $('<label for="displayTerminalPassword' + displayTerminalCount + '">').text(`Пароль:`);
+
+    const passwordInput = $('<input type="text">')
+        .attr('id', `displayTerminalPassword${displayTerminalCount}`)
+        .attr('name', `displayTerminalPassword${displayTerminalCount}`)
+        .val(terminalData ? terminalData.password : '')
+        .css('margin-right', '5%');
+
+
+    const deleteButton = $('<button type="button" style="margin: 10px 0px;">Удалить терминал отображения очереди</button>');
+    deleteButton.click(function() {
+        if (confirm(`Вы уверены, что хотите удалить терминал ${displayTerminalCount}?`)) {
+            displayTerminalDiv.remove();
+            reindexDisplayTerminals();
+        }
+    });
+
+    displayTerminalDiv.append(displayTerminalNum).append(infoLabel).append(infoInput).append(loginLabel).append(loginInput).append(passwordLabel).append(passwordInput).append(deleteButton);
+    $('#displayTerminalContainer').append(displayTerminalDiv);
+}
+        
+        });
+    </script>
+</body>
+</html>

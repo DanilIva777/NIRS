@@ -1,0 +1,93 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-size: 200px 200px;
+    background-image: url("../images/pattern.jpg");
+    background-repeat: repeat;
+    background-color: rgba(224, 224, 224, 0.7);
+}
+
+.top-bar {
+    background-color: #c8c8c8;
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10; 
+    padding: 10px 12% 10px 12%;
+    justify-content: center;
+}
+
+.logo {
+    height: 50px; /* Высота логотипа */
+    margin-right: 10px; /* Отступ между логотипом и текстом */
+}
+
+.title {
+    font-size: 18px;
+}
+
+.container {
+    background-color: white;
+    padding: 50px;
+    width: 400px;
+    border-radius: 12px 100px 12px 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    box-sizing: border-box;
+    margin-bottom: 35px;
+}
+
+button {
+    background-color: #294692;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: 500; /* Полужирный текст */
+    transition: background-color 0.3s ease; /*  Плавное изменение цвета при наведении */
+}
+
+.bottom-bar {
+    background-color: #333;
+    color: white;
+    padding: 15px 20px;
+    text-align: center;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.copyright {
+    font-size: 14px;
+}
+
+button:hover {
+    background-color: #1976D2;
+}
+
+.error-message {
+    color: #f44336;
+    text-align: center;
+    margin-top: 15px;
+}

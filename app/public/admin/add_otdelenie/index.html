@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <base href="/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавление отделения</title>
+    <link rel="stylesheet" href="/admin/add_otdelenie/style.css"></script>
+    <script src="/jquery/jquery-3.6.4.js"></script>
+</head>
+<body>
+    <div class="top-bar" style="display: flex; align-items: center;">
+        <img src="/images/logotip.png" alt="Logo" class="logo" style="margin-right: auto;">
+        <span id="user-info-hidden" style="display:none;">Иванов Иван Иванович</span>
+        <button id="logoutButton" type="button" style="width: auto; padding: 6px; border-radius: 6px; display: flex; align-items: center; background-color: #294692; border: none;">
+            
+            <img height="40px" src="/images/logout.png" alt="Выход" style="margin-right: 5px;">
+            <span id="user-info">Выход</span> 
+        </button>
+    </div>
+
+    <div class="container" id="container">
+        <h1>Добавить отделение</h1>
+        <form id="addOtdelenieForm">
+            <label for="index">Индекс:</label><br>
+            <input type="text" id="index" name="index" required><br>
+            <label for="naimenovanie">Наименование:</label><br>
+            <input type="text" id="naimenovanie" name="naimenovanie" required><br>
+            <label for="adres">Адрес:</label><br>
+            <input type="text" id="adres" name="adres" required><br>
+            <label for="ecs">ЕЦС (единый центр связи):</label><br>
+            <input type="checkbox" id="ecs" name="ecs" value=true><br>
+            <label for="time_obrabotki">Интервал выдачи талонов онлайн (ЧЧ:ММ):</label><br>
+            <input type="time" id="time_obrabotki" name="time_obrabotki" value="00:30"><br><br>
+
+            <h2>График работы отделения</h2>
+            <table id="otdelenieGrafikTable">
+                <thead>
+                    <tr>
+                        <th>День недели</th>
+                        <th>Время начала</th>
+                        <th>Время окончания</th>
+                        <th>Начало перерыва</th>
+                        <th>Конец перерыва</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Понедельник</th>
+                        <td><input type="time" name="grafikStart_Понедельник"></td>
+                        <td><input type="time" name="grafikEnd_Понедельник"></td>
+                        <td><input type="time" name="grafikBreakStart_Понедельник"></td>
+                        <td><input type="time" name="grafikBreakEnd_Понедельник"></td>
+                    </tr>
+                    <tr>
+                        <th>Вторник</th>
+                        <td><input type="time" name="grafikStart_Вторник"></td>
+                        <td><input type="time" name="grafikEnd_Вторник"></td>
+                        <td><input type="time" name="grafikBreakStart_Вторник"></td>
+                        <td><input type="time" name="grafikBreakEnd_Вторник"></td>
+                    </tr>
+                    <tr>
+                        <th>Среда</th>
+                        <td><input type="time" name="grafikStart_Среда"></td>
+                        <td><input type="time" name="grafikEnd_Среда"></td>
+                        <td><input type="time" name="grafikBreakStart_Среда"></td>
+                        <td><input type="time" name="grafikBreakEnd_Среда"></td>
+                    </tr>
+                    <tr>
+                        <th>Четверг</th>
+                        <td><input type="time" name="grafikStart_Четверг"></td>
+                        <td><input type="time" name="grafikEnd_Четверг"></td>
+                        <td><input type="time" name="grafikBreakStart_Четверг"></td>
+                        <td><input type="time" name="grafikBreakEnd_Четверг"></td>
+                    </tr>
+                    <tr>
+                        <th>Пятница</th>
+                        <td><input type="time" name="grafikStart_Пятница"></td>
+                        <td><input type="time" name="grafikEnd_Пятница"></td>
+                        <td><input type="time" name="grafikBreakStart_Пятница"></td>
+                        <td><input type="time" name="grafikBreakEnd_Пятница"></td>
+                    </tr>
+                    <tr>
+                        <th>Суббота</th>
+                        <td><input type="time" name="grafikStart_Суббота"></td>
+                        <td><input type="time" name="grafikEnd_Суббота"></td>
+                        <td><input type="time" name="grafikBreakStart_Суббота"></td>
+                        <td><input type="time" name="grafikBreakEnd_Суббота"></td>
+                    </tr>
+                    <tr>
+                        <th>Воскресенье</th>
+                        <td><input type="time" name="grafikStart_Воскресенье"></td>
+                        <td><input type="time" name="grafikEnd_Воскресенье"></td>
+                        <td><input type="time" name="grafikBreakStart_Воскресенье"></td>
+                        <td><input type="time" name="grafikBreakEnd_Воскресенье"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>Окна</h2>
+            <div id="oknaContainer"></div>
+            <button type="button" id="addOknoButton">Добавить окно</button><br><br>
+
+            <h2>Сотрудники</h2>
+            <div id="sotrudnikiContainer"></div>
+            <button type="button" id="addSotrudnikButton" style="margin: 10px 0px;">Добавить сотрудника</button><br><br>
+
+            <h2>Терминалы выдачи талонов</h2>
+            <div id="terminalContainer"></div>
+            <button type="button" id="addTerminalButton" style="margin: 10px 0px;">Добавить терминал выдачи талонов</button><br><br>
+
+            <h2>Терминалы отображения очереди</h2>
+            <div id="displayTerminalContainer"></div>
+            <button type="button" id="addDisplayTerminalButton" style="margin: 10px 0px;">Добавить терминал отображения очереди</button><br><br>
+
+            <input type="submit" class="button" value="Добавить отделение">
+        </form>    
+    </div>
+
+    <div class="bottom-bar">
+        <span class="copyright">© ГУП ДНР «Почта Донбасса» 2024</span>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            let oknoCount = 0;
+            let sotrudnikCount = 0;
+            let terminalCount = 0;
+            let displayTerminalCount = 0;
+            let dolzhnosti = [];
+
+            function generateRandomString(length) {
+                const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let result = '';
+                for (let i = 0; i < length; i++) {
+                    const randomIndex = Math.floor(Math.random() * charset.length);
+                    result += charset[randomIndex];
+                }
+                return result;
+            }
+
+            function reindexTerminals() {
+                let currentTerminalIndex = 1;
+                $('#terminalContainer > div').each(function() {
+                    $(this).attr('id', `terminal${currentTerminalIndex}`);
+                    $(this).find('p2').text(`Терминал выдачи талонов №${currentTerminalIndex}:`);
+                    $(this).find('label[for^="terminalInfo"]').text(`Информация о терминале:`);
+                    $(this).find('input[id^="terminalInfo"]').attr('id', `terminalInfo${currentTerminalIndex}`).attr('name', `terminalInfo${currentTerminalIndex}`);
+                    $(this).find('label[for^="terminalLogin"]').text(`Логин:`);
+                    $(this).find('input[id^="terminalLogin"]').attr('id', `terminalLogin${currentTerminalIndex}`).attr('name', `terminalLogin${currentTerminalIndex}`);
+                    $(this).find('label[for^="terminalPassword"]').text(`Пароль:`);
+                    $(this).find('input[id^="terminalPassword"]').attr('id', `terminalPassword${currentTerminalIndex}`).attr('name', `terminalPassword${currentTerminalIndex}`);
+                    currentTerminalIndex++;
+                });
+                terminalCount = currentTerminalIndex - 1;
+            }
+
+            function reindexDisplayTerminals() {
+                let currentDisplayTerminalIndex = 1;
+                $('#displayTerminalContainer > div').each(function() {
+                    $(this).attr('id', `displayTerminal${currentDisplayTerminalIndex}`);
+                    $(this).find('p2').text(`Терминал отображения очереди №${currentDisplayTerminalIndex}:`);
+                    $(this).find('label[for^="displayTerminalInfo"]').text(`Информация о терминале отображения очереди:`);
+                    $(this).find('input[id^="displayTerminalInfo"]').attr('id', `displayTerminalInfo${currentDisplayTerminalIndex}`).attr('name', `displayTerminalInfo${currentDisplayTerminalIndex}`);
+                    $(this).find('label[for^="displayTerminalLogin"]').text(`Логин:`);
+                    $(this).find('input[id^="displayTerminalLogin"]').attr('id', `displayTerminalLogin${currentDisplayTerminalIndex}`).attr('name', `displayTerminalLogin${currentDisplayTerminalIndex}`);
+                    $(this).find('label[for^="displayTerminalPassword"]').text(`Пароль:`);
+                    $(this).find('input[id^="displayTerminalPassword"]').attr('id', `displayTerminalPassword${currentDisplayTerminalIndex}`).attr('name', `displayTerminalPassword${currentDisplayTerminalIndex}`);
+                    currentDisplayTerminalIndex++;
+                });
+                displayTerminalCount = currentDisplayTerminalIndex - 1;
+            }
+
+            $('#addTerminalButton').click(function() {
+                terminalCount++;
+                const randomLogin = generateRandomString(8);
+                const randomPassword = generateRandomString(12);
+
+                const terminalNum = $('<br><p2></p2><br>').text(`Терминал выдачи талонов №${terminalCount}:`);
+                const terminalDiv = $('<div></div>').attr('id', `terminal${terminalCount}`);
+                const infoLabel = $('<label for="terminalInfo' + terminalCount + '">').text(`Информация о терминале:`);
+                const infoInput = $('<input type="text">').attr('id', `terminalInfo${terminalCount}`).attr('name', `terminalInfo${terminalCount}`).css('margin-right', '5%');
+                const loginLabel = $('<label for="terminalLogin' + terminalCount + '">').text(`Логин:`);
+                const loginInput = $('<input type="text">').attr('id', `terminalLogin${terminalCount}`).attr('name', `terminalLogin${terminalCount}`).val(randomLogin).css('margin-right', '5%');
+                const passwordLabel = $('<label for="terminalPassword' + terminalCount + '">').text(`Пароль:`);
+                const passwordInput = $('<input type="text">').attr('id', `terminalPassword${terminalCount}`).attr('name', `terminalPassword${terminalCount}`).val(randomPassword).css('margin-right', '5%');
+
+                const deleteButton = $('<button type="button" style="margin: 10px 0px;">Удалить терминал</button>');
+                deleteButton.click(function() {
+                    if (confirm(`Вы уверены, что хотите удалить терминал ${terminalCount}?`)) {
+                        terminalDiv.remove();
+                        reindexTerminals();
+                    }
+                });
+
+                terminalDiv.append(terminalNum).append(infoLabel).append(infoInput).append(loginLabel).append(loginInput).append(passwordLabel).append(passwordInput).append(deleteButton);
+                $('#terminalContainer').append(terminalDiv);
+            });
+
+            $('#addDisplayTerminalButton').click(function() {
+                displayTerminalCount++;
+                const randomLogin = generateRandomString(8);
+                const randomPassword = generateRandomString(12);
+
+                const displayTerminalNum = $('<br><p2></p2><br>').text(`Терминал отображения очереди №${displayTerminalCount}:`);
+                const displayTerminalDiv = $('<div></div>').attr('id', `displayTerminal${displayTerminalCount}`);
+                const infoLabel = $('<label for="displayTerminalInfo' + displayTerminalCount + '">').text(`Информация о терминале отображения очереди:`);
+                const infoInput = $('<input type="text">').attr('id', `displayTerminalInfo${displayTerminalCount}`).attr('name', `displayTerminalInfo${displayTerminalCount}`).css('margin-right', '5%');
+                const loginLabel = $('<label for="displayTerminalLogin' + displayTerminalCount + '">').text(`Логин:`);
+                const loginInput = $('<input type="text">').attr('id', `displayTerminalLogin${displayTerminalCount}`).attr('name', `displayTerminalLogin${displayTerminalCount}`).val(randomLogin).css('margin-right', '5%');
+                const passwordLabel = $('<label for="displayTerminalPassword' + displayTerminalCount + '">').text(`Пароль:`);
+                const passwordInput = $('<input type="text">').attr('id', `displayTerminalPassword${displayTerminalCount}`).attr('name', `displayTerminalPassword${displayTerminalCount}`).val(randomPassword).css('margin-right', '5%');
+
+                const deleteButton = $('<button type="button" style="margin: 10px 0px;">Удалить терминал отображения очереди</button>');
+                deleteButton.click(function() {
+                    if (confirm(`Вы уверены, что хотите удалить терминал ${displayTerminalCount}?`)) {
+                        displayTerminalDiv.remove();
+                        reindexDisplayTerminals();
+                    }
+                });
+
+                displayTerminalDiv.append(displayTerminalNum).append(infoLabel).append(infoInput).append(loginLabel).append(loginInput).append(passwordLabel).append(passwordInput).append(deleteButton);
+                $('#displayTerminalContainer').append(displayTerminalDiv);
+            });
+
+            $.ajax({
+                url: '/get_user_info',
+                type: 'GET',
+                success: function(data) {
+                    if (data.info) {
+                        $('#user-info').before(data.info + ' ');
+                    }
+                },
+                error: function(error) {
+                    console.error("Error fetching user info:", error);
+                }
+            });
+        
+            $.ajax({
+                url: '/admin/dolzhnosti',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    dolzhnosti = data;
+                    initializeForm();
+                },
+                error: function(error) {
+                    console.error("Error fetching dolzhnosti:", error);
+                    alert("Не удалось загрузить список должностей.");
+                }
+            });
+
+            // Остальные функции и обработчики внутри initializeForm
+            function initializeForm() {
+              let assignedDolzhnosti = {};
+              const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+
+              function createDolzhnostiCheckboxes(containerId, namePrefix) {
+                const container = $('<div></div>').attr('id', containerId);
+                dolzhnosti.forEach(dolzhnost => {
+                  const checkboxDiv = $('<div></div>');
+                  const checkbox = $('<input type="checkbox">')
+                    .attr('value', dolzhnost.id)
+                    .attr('name', `${namePrefix}[${dolzhnost.id}]`);
+                  const label = $('<label></label>').text(dolzhnost.naim);
+                  checkboxDiv.append(checkbox).append(label);
+                  container.append(checkboxDiv);
+                });
+                return container;
+              }
+
+              function updateOknoSelects(selectedDolzhnostId = null) {
+                $('select[id^="oknoSelect"]').each(function() {
+                  const sotrudnikIndex = $(this).attr('id').replace('oknoSelect', '');
+                  const selectedDolzhnost = selectedDolzhnostId || $(`#dolzhnostSelect${sotrudnikIndex}`).val();
+                  $(this).empty();
+                  $(this).append($('<option value="">Выберите окно</option>'));
+                  for (let i = 1; i <= oknoCount; i++) {
+                    const oknoDolzhnosti = $(`#dolzhnostiCheckboxes${i} input:checked`).map(function() {
+                      return parseInt($(this).val(), 10);
+                    }).get();
+                    if (oknoDolzhnosti.includes(parseInt(selectedDolzhnost))) {
+                      const option = $('<option></option>')
+                        .attr('value', i)
+                        .text($(`#oknoNaim${i}`).val() || `Окно ${i}`);
+                      $(this).append(option);
+                    }
+                  }
+                });
+              }
+
+              function reindexEmployees() {
+                const remainingEmployees = $('#sotrudnikiContainer > div');
+                sotrudnikCount = remainingEmployees.length;
+                remainingEmployees.each(function(index) {
+                  const newIndex = index + 1;
+                  $(this).attr('id', `sotrudnik${newIndex}`);
+                  $(this).find('p2').text(`Сотрудник №${newIndex}:`);
+                  $(this).find('label[for^="employeeInfo"]').text(`ФИО:`);
+                  $(this).find('input[id^="employeeInfo"]').attr('id', `employeeInfo${newIndex}`).attr('name', `employeeInfo${newIndex}`);
+                  $(this).find('label[for^="employeeLogin"]').text(`Логин:`);
+                  $(this).find('input[id^="employeeLogin"]').attr('id', `employeeLogin${newIndex}`).attr('name', `employeeLogin${newIndex}`);
+                  $(this).find('input[id^="employeePassword"]').attr('id', `employeePassword${newIndex}`).attr('name', `employeePassword${newIndex}`);
+                  $(this).find('label[for^="dolzhnost"]').text(`Должность:`);
+                  $(this).find('select[id^="dolzhnostSelect"]').attr('id', `dolzhnostSelect${newIndex}`).attr('name', `dolzhnostSelect${newIndex}`);
+                  $(this).find('label[for^="oknoSelect"]').text(`Окно:`);
+                  $(this).find('select[id^="oknoSelect"]').attr('id', `oknoSelect${newIndex}`).attr('name', `okno_sotrudnika[${newIndex}]`);
+                  $(this).find(`.grafikLabel`).next('table').attr('id', `employeeGrafikTable_sotrudnik${newIndex}`);
+                });
+              }
+
+              function reindexWindows() {
+                const remainingWindows = $('#oknaContainer > div');
+                oknoCount = remainingWindows.length;
+                remainingWindows.each(function(index) {
+                  const newIndex = index + 1;
+                  $(this).attr('id', `okno${newIndex}`);
+                  $(this).find('label[for="oknoNaim"]').text(`Название окна ${newIndex}:`);
+                  $(this).find('input[type="text"]').attr('id', `oknoNaim${newIndex}`);
+                  $(this).find('div[id^="dolzhnostiCheckboxes"]').attr('id', `dolzhnostiCheckboxes${newIndex}`);
+                  $(this).find('input[type="checkbox"]').each(function(i) {
+                    $(this).attr('name', `okno_dolzhnosti[${newIndex}][${$(this).val()}]`);
+                  });
+                });
+              }
+
+              $('#addOknoButton').click(function() {
+                oknoCount++;
+                const oknoDiv = $('<div></div>').attr('id', `okno${oknoCount}`);
+                const naimLabel = $('<label for="oknoNaim">').text(`Название окна ${oknoCount}:  `);
+                const naimInput = $('<input type="text" name="oknaNaim">').attr('id', `oknoNaim${oknoCount}`);
+                const dolzhnostiLabel = $('<br><label>').text("Должности:");
+                const dolzhnostiCheckboxes = createDolzhnostiCheckboxes(`dolzhnostiCheckboxes${oknoCount}`, `okno_dolzhnosti[${oknoCount}]`);
+                oknoDiv.append(naimLabel).append(naimInput).append(dolzhnostiLabel).append(dolzhnostiCheckboxes);
+                const deleteButton = $('<button type="button" style="margin: 10px 0px;">Удалить окно</button>');
+                deleteButton.click(function() {
+                  const windowId = parseInt(oknoDiv.attr('id').replace('okno', ''));
+                  if (assignedDolzhnosti[windowId] && assignedDolzhnosti[windowId].length > 0) {
+                    alert('Нельзя удалить окно, к которому прикреплены сотрудники.');
+                    return;
+                  }
+                  if (confirm(`Вы уверены, что хотите удалить окно ${windowId}?`)) {
+                    oknoDiv.remove();
+                    delete assignedDolzhnosti[windowId];
+                    reindexWindows();
+                    updateOknoSelects();
+                    updateSotrudnikDolzhnostSelects();
+                  }
+                });
+                oknoDiv.append(deleteButton);
+                $('#oknaContainer').append(oknoDiv);
+                updateOknoSelects();
+                assignedDolzhnosti[oknoCount] = [];
+              });
+
+              $('#addSotrudnikButton').click(function() {
+                sotrudnikCount++;
+                const randomLogin = generateRandomString(8);
+                const randomPassword = generateRandomString(12);
+                const sotrudnikNum = $('<br><p2></p2><br>').text(`Сотрудник №${sotrudnikCount}:`);
+                const sotrudnikDiv = $('<div></div>').attr('id', `sotrudnik${sotrudnikCount}`);
+                const fioLabel = $('<label for="employeeInfo' + sotrudnikCount + '">').text(`ФИО:`);
+                const fioInput = $('<input type="text">').attr('id', `employeeInfo${sotrudnikCount}`).attr('name', `employeeInfo${sotrudnikCount}`).css('margin-right', '5%');
+                const loginLabel = $('<label for="employeeLogin' + sotrudnikCount + '">').text(`Логин:`);
+                const loginInput = $('<input type="text">').attr('id', `employeeLogin${sotrudnikCount}`).attr('name', `employeeLogin${sotrudnikCount}`).val(randomLogin).css('margin-right', '5%');
+                const passwordLabel = $('<label for="employeePassword' + sotrudnikCount + '">').text(`Пароль:`);
+                const passwordInput = $('<input type="text">').attr('id', `employeePassword${sotrudnikCount}`).attr('name', `employeePassword${sotrudnikCount}`).val(randomPassword).css('margin-right', '5%');
+                const dolzhnostLabel = $('<label for="dolzhnost' + sotrudnikCount + '">').text(`Должность:`);
+                const dolzhnostSelect = $('<select></select>').attr('id', `dolzhnostSelect${sotrudnikCount}`).attr('name', `dolzhnostSelect${sotrudnikCount}`).css('margin-right', '5%');
+                dolzhnosti.forEach(dolzhnost => {
+                  const option = $('<option></option>')
+                    .attr('value', dolzhnost.id)
+                    .text(dolzhnost.naim);
+                  dolzhnostSelect.append(option);
+                });
+                const oknoSelectLabel = $('<label for="oknoSelect' + sotrudnikCount + '">').text(`Окно:`);
+                const oknoSelect = $('<select></select>').attr('id', `oknoSelect${sotrudnikCount}`).attr('name', `okno_sotrudnika[${sotrudnikCount}]`);
+                oknoSelect.append($('<option value="">Выберите окно</option>'));
+                const grafikLabel = $('<label>').text('График работы:');
+                const employeeGrafikTable = $(`<table id="employeeGrafikTable_sotrudnik${sotrudnikCount}"></table>`);
+                const employeeGrafikContainer = $('<div></div>').append(employeeGrafikTable);
+
+                function createEmployeeGrafikTable() {
+                  employeeGrafikTable.empty();
+                  const thead = $('<thead></thead>');
+                  const headerRow = $('<tr></tr>');
+                  headerRow.append($('<th>День недели</th>'));
+                  headerRow.append($('<th>Время начала</th>'));
+                  headerRow.append($('<th>Время окончания</th>'));
+                  thead.append(headerRow);
+                  employeeGrafikTable.append(thead);
+                  const tbody = $('<tbody></tbody>');
+                  days.forEach(day => {
+                    const row = $('<tr></tr>');
+                    row.append($('<td></td>').text(day));
+                    row.append($('<td></td>').append($('<input type="time">').attr('name', `employeeGrafikStart_${day}_sotrudnik${sotrudnikCount}`)));
+                    row.append($('<td></td>').append($('<input type="time">').attr('name', `employeeGrafikEnd_${day}_sotrudnik${sotrudnikCount}`)));
+                    tbody.append(row);
+                  });
+                  employeeGrafikTable.append(tbody);
+                }
+                createEmployeeGrafikTable();
+
+                const deleteButton = $('<button type="button" style="margin: 10px 0px;">Удалить сотрудника</button>');
+                deleteButton.click(function() {
+                    const employeeId = sotrudnikCount;
+                    if (confirm(`Вы уверены, что хотите удалить сотрудника ${employeeId}?`)) {
+                        sotrudnikDiv.remove();
+                        for (const windowId in assignedDolzhnosti)
+                            assignedDolzhnosti[windowId] = assignedDolzhnosti[windowId].filter(id => id !== parseInt($(`#dolzhnostSelect${employeeId}`).val()));
+
+                        reindexEmployees();
+                        updateOknoSelects();
+                    }
+                });
+
+                sotrudnikDiv.append(sotrudnikNum).append(fioLabel).append(fioInput).append(loginLabel).append(loginInput).append(passwordLabel).append(passwordInput).append(dolzhnostLabel).append(dolzhnostSelect).append(oknoSelectLabel).append(oknoSelect).append(deleteButton).append(grafikLabel).append(employeeGrafikContainer);
+                $('#sotrudnikiContainer').append(sotrudnikDiv);
+                oknoSelect.change(function() {
+                  const windowId = $(this).val();
+                  const employeeDolzhnost = parseInt($(`#dolzhnostSelect${sotrudnikCount}`).val());
+                  if (windowId) {
+                    assignedDolzhnosti[windowId].push(employeeDolzhnost);
+                  }
+                });
+                updateOknoSelects();
+              });
+
+              function updateSotrudnikDolzhnostSelects() {
+                $('select[id^="dolzhnostSelect"]').each(function() {
+                  const sotrudnikIndex = $(this).attr('id').replace('dolzhnostSelect', '');
+                  const currentVal = $(this).val();
+                  $(this).empty();
+                  dolzhnosti.forEach(dolzhnost => {
+                    const option = $('<option></option>')
+                      .attr('value', dolzhnost.id)
+                      .text(dolzhnost.naim);
+                    $(this).append(option);
+                  });
+                  $(this).val(currentVal);
+                });
+              }
+
+              $('#sotrudnikiContainer').on('change', 'select[id^="dolzhnostSelect"]', function() {
+                const sotrudnikIndex = $(this).attr('id').replace('dolzhnostSelect', '');
+                updateOknoSelects(parseInt($(this).val()));
+              });
+
+              $('#oknaContainer').on('change', 'input[type="checkbox"]', function() {
+                const windowId = $(this).closest('div[id^="okno"]').attr('id').replace('okno', '');
+                const dolzhnostId = parseInt($(this).val());
+                const isChecked = $(this).is(':checked');
+                if (!isChecked && assignedDolzhnosti[windowId].includes(dolzhnostId)) {
+                  alert("Нельзя убрать эту должность, так как она назначена сотруднику.");
+                  $(this).prop('checked', true);
+                  return;
+                }
+                if (!isChecked)
+                  assignedDolzhnosti[windowId] = assignedDolzhnosti[windowId].filter(id => id !== dolzhnostId);
+                updateOknoSelects();
+              });
+
+              $('#oknaContainer').on('input', 'input[id^="oknoNaim"]', updateOknoSelects);
+
+              updateOknoSelects();
+
+              $('#addOtdelenieForm').submit(function(event) {
+                event.preventDefault();
+
+                const formData = {
+                    index: $('#index').val(),
+                    naimenovanie: $('#naimenovanie').val(),
+                    adres: $('#adres').val(),
+                    ecs: $('#ecs').is(':checked'),
+                    time_obrabotki: $('#time_obrabotki').val(),
+                    okna: [],
+                    sotrudniki: [],
+                    terminals: [],
+                    displayTerminals: [],
+                    grafikOtdeleniya: [],
+                };
+              
+                // График отделения
+                let otdelenieGrafikIsValid = true;
+                const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+                days.forEach(day => {
+                    const start = $(`input[name="grafikStart_${day}"]`).val();
+                    const end = $(`input[name="grafikEnd_${day}"]`).val();
+                    const breakStart = $(`input[name="grafikBreakStart_${day}"]`).val();
+                    const breakEnd = $(`input[name="grafikBreakEnd_${day}"]`).val();
+                
+                    if (start || end) {
+                        // Если указано время начала или конца, отделение считается рабочим в этот день
+                        if (!start || !end) {
+                            alert(`Ошибка в графике отделения: для дня "${day}" не указано время начала или окончания работы.`);
+                            otdelenieGrafikIsValid = false;
+                        } else if (start >= end) {
+                            alert(`Ошибка в графике отделения: для дня "${day}" время окончания работы должно быть позже времени начала.`);
+                            otdelenieGrafikIsValid = false;
+                        } else if (breakStart || breakEnd) {
+                            // Если указан перерыв, проверяем его корректность
+                            if (!breakStart || !breakEnd) {
+                                alert(`Ошибка в графике отделения: для дня "${day}" не указано время начала или окончания перерыва.`);
+                                otdelenieGrafikIsValid = false;
+                            } else if (breakStart >= breakEnd) {
+                                alert(`Ошибка в графике отделения: для дня "${day}" время окончания перерыва должно быть позже времени начала.`);
+                                otdelenieGrafikIsValid = false;
+                            } else if (breakStart <= start) {
+                                alert(`Ошибка в графике отделения: для дня "${day}" время начала перерыва должно быть позже времени начала работы.`);
+                                otdelenieGrafikIsValid = false;
+                            } else if (breakEnd >= end) {
+                                alert(`Ошибка в графике отделения: для дня "${day}" время окончания перерыва должно быть раньше времени окончания работы.`);
+                                otdelenieGrafikIsValid = false;
+                            }
+                        }
+                    } else if (breakStart || breakEnd) {
+                        // Если указано только время перерыва, считаем это ошибкой
+                        alert(`Ошибка в графике отделения: для дня "${day}" указано время перерыва, но не указано время начала или окончания работы. День отмечен как нерабочий`);
+                        otdelenieGrafikIsValid = false;
+                    }
+                  
+                    formData.grafikOtdeleniya.push({
+                        den_nedeli: day,
+                        start_time: start,
+                        stop_time: end,
+                        break_start_time: breakStart,
+                        break_end_time: breakEnd
+                    });
+                });
+              
+                if (!otdelenieGrafikIsValid) {
+                    return;
+                }
+              
+                for (let i = 1; i <= oknoCount; i++) {
+                    const selectedDolzhnosti = [];
+                    $(`#dolzhnostiCheckboxes${i} input:checked`).each(function() {
+                        selectedDolzhnosti.push(parseInt($(this).val(), 10));
+                    });
+                    formData.okna.push({
+                        naim_okna: $(`#oknoNaim${i}`).val(),
+                        dolzhnosti: selectedDolzhnosti
+                    });
+                }
+              
+                for (let i = 1; i <= sotrudnikCount; i++) {
+                    const employeeGrafikData = [];
+                    days.forEach(day => {
+                        employeeGrafikData.push({
+                            den_nedeli: day,
+                            time_start: $(`#sotrudnik${i} input[name="employeeGrafikStart_${day}_sotrudnik${i}"]`).val(),
+                            time_stop: $(`#sotrudnik${i} input[name="employeeGrafikEnd_${day}_sotrudnik${i}"]`).val()
+                        });
+                    });
+                  
+                    formData.sotrudniki.push({
+                        info: $(`#employeeInfo${i}`).val(),
+                        login: $(`#employeeLogin${i}`).val(),
+                        password: $(`#employeePassword${i}`).val(),
+                        id_dolzhnosti: $(`#dolzhnostSelect${i}`).val(),
+                        okno: $(`#oknoSelect${i}`).val(),
+                        grafik: employeeGrafikData
+                    });
+                }
+              
+                for (let i = 1; i <= terminalCount; i++) {
+                    formData.terminals.push({
+                        info: $(`#terminalInfo${i}`).val(),
+                        login: $(`#terminalLogin${i}`).val(),
+                        password: $(`#terminalPassword${i}`).val()
+                    });
+                }
+              
+                for (let i = 1; i <= displayTerminalCount; i++) {
+                    formData.displayTerminals.push({
+                        info: $(`#displayTerminalInfo${i}`).val(),
+                        login: $(`#displayTerminalLogin${i}`).val(),
+                        password: $(`#displayTerminalPassword${i}`).val()
+                    });
+                }
+                
+                console.log(formData);
+
+                $.ajax({
+                    url: '/admin/otdelenie/add',
+                    type: 'POST',
+                    data: JSON.stringify(formData),
+                    contentType: 'application/json',
+                    dataType: 'json',
+                    success: function(response) {
+                        alert('Отделение добавлено!');
+                        //window.location.href = '/admin';
+                    },
+                    error: function(error) {
+                        console.error('Ошибка при добавлении отделения:', error);
+                        alert('Ошибка при добавлении отделения.');
+                    }
+                });
+            });
+        }
+    });
+    </script>
+</body>
+</html>

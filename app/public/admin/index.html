@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <base href="/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель администратора</title>
+    <link rel="stylesheet" href="/admin/style.css"></script>
+    <script src="/jquery/jquery-3.6.4.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="top-bar" style="display: flex; align-items: center;">
+        <img src="/images/logotip.png" alt="Logo" class="logo" style="margin-right: auto;">
+        <button id="logoutButton" type="button" style="width: auto; padding: 6px; border-radius: 6px; display: flex; align-items: center; background-color: #294692; border: none;">
+            <img height="40px" src="/images/logout.png" alt="Выход" style="margin-right: 5px;">
+            <span id="user-info">Выход</span> 
+        </button>
+    </div>
+
+    <div class="container" id="container">
+        <h1>Панель администратора</h1>
+        <h2>Список отделений</h2>
+        <table id="otdeleniaTable"> </table>
+        <button id="generateOtdeleniaReport" class="button">Сформировать отчет по отделениям</button><br><br>
+    </div>
+
+    <div class="bottom-bar">
+        <span class="copyright">© ГУП ДНР «Почта Донбасса» 2024</span>
+    </div>
+
+    <script>
+        const logoutButton = document.getElementById('logoutButton');
+
+        $('#generateOtdeleniaReport').click(function() {
+            $.ajax({
+                url: '/admin/otdelenia',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    const reportData = [
+                        [
+                            "Индекс",
+                            "Наименование",
+                            "Адрес",
+                            "ECS",
+                            "Время обработки"
+                        ]
+                    ];
+
+                    data.forEach(otdelenie => {
+                        reportData.push([
+                            otdelenie.index,
+                            otdelenie.naimenovanie,
+                            otdelenie.adres,
+                            otdelenie.ecs ? 'Да' : 'Нет',
+                            otdelenie.time_obrabotki
+                        ]);
+                    });
+
+                    const ws = XLSX.utils.aoa_to_sheet(reportData);
+                    ws['!cols'] = [
+                        { wch: 15 }, // Ширина столбца "Индекс"
+                        { wch: 30 }, // Ширина столбца "Наименование"
+                        { wch: 40 }, // Ширина столбца "Адрес"
+                        { wch: 10 }, // Ширина столбца "ECS"
+                        { wch: 20 }  // Ширина столбца "Время обработки"
+                    ];
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Отчет по отделениям");
+
+                    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+                    const url = URL.createObjectURL(blob);
+
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'otchet_po_otdeleniyam.xlsx';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                               URL.revokeObjectURL(url);
+                },
+                error: function(error) {
+                    console.error("Ошибка при получении данных отделений:", error);
+                    alert("Не удалось сформировать отчет.");
+                }
+            });
+        });
+
+        logoutButton.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/logout', { method: 'POST' });
+            
+                if (!response.ok) {
+                  try {
+                      const data = await response.json(); 
+                      console.error('Logout error:', data.message || 'Logout failed');
+                      alert(data.message || 'Logout failed');
+                  } catch (jsonError) {
+                      console.error('Error parsing JSON:', jsonError);
+                      console.error('Raw response:', await response.text());
+                      alert('An error occurred during logout.');
+                  }
+                  return;
+                }
+            
+                window.location.href = '/';
+            
+            } catch (error) {
+                console.error('Error during logout:', error);
+                alert("Произошла ошибка при выходе из системы. Попробуйте еще раз.");
+            }
+        });
+
+        $(document).ready(function() {
+            function deleteOtdelenie(id) {
+                $.ajax({
+                    url: `/admin/otdelenia/${id}`, 
+                    type: 'DELETE',
+                    success: function() {
+                        alert('Отделение удалено!');
+                        location.reload(); 
+                    },
+                    error: function(error) {
+                        console.error("Error deleting otdelenie:", error);
+                        alert('Не удалось удалить отделение.');
+                    }
+                });
+            }
+
+            $.ajax({
+                url: '/admin/otdelenia',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    const otdeleniaTable = $('#otdeleniaTable');
+                
+                    if (!otdeleniaTable.length){
+                        console.error("Error: element #otdeleniaTable not found");
+                        return;
+                    }
+                
+                    const headerRow = $('<tr></tr>');
+                    headerRow.append($('<th>').text('Индекс'));
+                    headerRow.append($('<th>').text('Наименование'));
+                    headerRow.append($('<th>').text('Адрес'));
+                    headerRow.append($('<th>').text('ECS'));
+                    headerRow.append($('<th>').text('Время обработки'));
+                    headerRow.append($('<th>').text('Действия'));
+                    otdeleniaTable.append(headerRow);
+                    
+                    data.forEach(otdelenie => {
+                        const row = $('<tr></tr>');
+                        row.append($('<td>').text(otdelenie.index));
+                        row.append($('<td>').text(otdelenie.naimenovanie));
+                        row.append($('<td>').text(otdelenie.adres));
+                        row.append($('<td>').text(otdelenie.ecs ? 'Да' : 'Нет'));
+                        row.append($('<td>').text(otdelenie.time_obrabotki));
+                        
+                        const editCell = $('<td></td>');
+                        const editLink = $('<a></a>')
+                            .attr('href', `/admin/otdelenie/${otdelenie.id}`)
+                            .text('Редактировать');
+                        
+                        editCell.append(editLink);
+                        row.append(editCell);
+                        
+                        otdeleniaTable.append(row);
+                        
+                        const deleteCell = $('<td></td>');
+                        const deleteImg = $('<img height=20px>')
+                            .attr('src', '/images/delete_icon.png')
+                            .attr('alt', 'Удалить')
+                            .css('cursor', 'pointer')
+                            .click(function() {
+                                if (confirm(`Вы уверены, что хотите удалить отделение "${otdelenie.naimenovanie}"?`)) {
+                                    deleteOtdelenie(otdelenie.id);
+                                }
+                            });
+                          
+                        deleteCell.append(deleteImg);
+                        row.append(deleteCell);
+                        otdeleniaTable.append(row);
+                        });
+                    },
+                    error: function(error) {
+                        console.error("Error fetching otdelenia:", error);
+                        alert("Не удалось загрузить список отделений.");
+                    }
+                }
+            );
+            
+            $('#goToAdminsPage').click(function() {
+                window.location.href = '/admin/accounts';
+            });
+
+            const addButton = $('<button>Добавить отделение</button><br><br>');
+            addButton.click(function() {
+                window.location.href = '/admin/otdelenia/add';
+            });
+            $('#container').append(addButton);
+
+            const adminsPageButton = $('<button>Управление администраторами</button>');
+            adminsPageButton.click(function() {
+                window.location.href = '/admin/accounts';
+            });
+            $('#container').append(adminsPageButton);
+        });
+    </script>
+</body>
+</html>

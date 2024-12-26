@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <base href="/">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация</title>
+    <link rel="stylesheet" href="login/style.css">
+</head>
+<body>
+    <div class="top-bar">
+        <img src="images/logotip.png" alt="Logo" class="logo">
+        <span class="title">ГОСУДАРСТВЕННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ ДОНЕЦКОЙ НАРОДНОЙ РЕСПУБЛИКИ «ПОЧТА ДОНБАССА»</span>
+    </div>
+
+    <div class="container">
+        <h1>Авторизация</h1>
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="login">Логин:</label>
+                <input type="text" id="login" name="login" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Пароль:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Войти</button>
+            <div id="error-message" class="error-message"></div>
+        </form>
+    </div>
+
+    <div class="bottom-bar">
+        <span class="copyright">© ГУП ДНР «Почта Донбасса» 2024</span>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('error-message');
+
+        loginForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const login = document.getElementById('login').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ login, password })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            errorMessage.textContent = data.message;
+                            throw new Error(data.message);
+                        });
+                    }
+                    return response.json(); //  Если ответ ok, парсим JSON
+                })
+                .then(data => {
+                    window.location.href = data.redirectUrl; // Редирект на нужную страницу
+                })
+                .catch(error => {
+                    console.error('Ошибка при авторизации:', error);
+                    if (!errorMessage.textContent) {
+                        errorMessage.textContent = "Произошла ошибка. Попробуйте позже.";
+                    }
+                });
+            } catch (error) {
+                console.error('Ошибка при авторизации:', error);
+                if (!errorMessage.textContent) {
+                    errorMessage.textContent = "Произошла ошибка. Попробуйте позже.";
+                }
+            }
+        });
+    </script>
+</body>
+</html>
